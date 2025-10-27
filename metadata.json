@@ -1,0 +1,7 @@
+{
+  "name": "AI MIDI Piano",
+  "description": "An interactive piano keyboard that uses AI to generate sheet music for your favorite songs and allows you to play them.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
