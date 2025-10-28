@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getSongNotes, getPracticeSummary } from './services/geminiService';
 import { Piano } from './components/Piano';
@@ -7,9 +8,10 @@ import type { SongNote, AppState, Transcription } from './types';
 import { HeroHeader } from './components/ui/HeroHeader';
 import { GlowingEffect } from './components/ui/glowing-effect';
 import { cn } from './lib/utils';
-import { Music, Keyboard } from 'lucide-react';
+import { Music, Keyboard, User, Bot, ClipboardCheck } from 'lucide-react';
 import { GradualSpacing } from './components/ui/gradual-spacing';
 import { Alert } from './components/ui/Alert';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // Note frequencies from C3 to B5
 const noteFrequencies: { [key: string]: number } = {
@@ -137,6 +139,7 @@ const App: React.FC = () => {
   const playbackSpeedRef = useRef(playbackSpeed);
   useEffect(() => { playbackSpeedRef.current = playbackSpeed }, [playbackSpeed]);
 
+  const transcriptionContainerRef = useRef<HTMLDivElement>(null);
 
   const { isListening, transcriptions, error: liveError, startListening, stopListening } = useLiveFeedback();
   
@@ -162,6 +165,13 @@ const App: React.FC = () => {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     }
   }, [appState, animationLoop]);
+
+  useEffect(() => {
+    if (transcriptionContainerRef.current) {
+        const container = transcriptionContainerRef.current;
+        container.scrollTop = container.scrollHeight;
+    }
+  }, [transcriptions]);
 
 
   const initializeAudio = useCallback(() => {
@@ -591,28 +601,66 @@ const App: React.FC = () => {
                        )}
                     </div>
 
-                    <div className="w-full sm:w-2/3 min-h-[150px] bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        {practiceSummary ? (
-                          <div className="prose animate-fade-in">
-                            <h3 className="text-xl font-semibold mb-2">Practice Summary</h3>
-                            <p>{practiceSummary}</p>
-                          </div>
+                    <div className="w-full sm:w-2/3 min-h-[150px] bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col">
+                        {isSummaryLoading ? (
+                           <div className="flex flex-col items-center justify-center flex-1 animate-fade-in">
+                              <svg className="animate-spin h-8 w-8 text-purple-600 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              <p className="text-purple-700 font-semibold">Generating your summary...</p>
+                            </div>
+                        ) : practiceSummary ? (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-purple-50 p-4 rounded-lg border border-purple-200"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="bg-purple-100 p-2 rounded-full mt-1">
+                                <ClipboardCheck className="h-5 w-5 text-purple-600" />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold text-purple-800">Practice Summary</h3>
+                                <p className="text-gray-700 whitespace-pre-wrap">{practiceSummary}</p>
+                              </div>
+                            </div>
+                          </motion.div>
                         ) : (
-                          <div className="space-y-4">
-                            {transcriptions.map((t, index) => (
-                                <div key={index} className="flex flex-col gap-2 animate-fade-in">
-                                    <div className="self-start bg-gray-200 rounded-lg p-3 max-w-xs break-words">
-                                        <p className="text-sm font-medium text-gray-500">You Played</p>
-                                        <p className="text-gray-700 italic">{t.user || "..."}</p>
-                                    </div>
-                                    <div className="self-end bg-blue-500 text-white rounded-lg p-3 max-w-xs break-words">
-                                         <p className="text-sm font-medium text-blue-100">Tutor Said</p>
-                                        <p>{t.assistant || "..."}</p>
-                                    </div>
-                                </div>
-                            ))}
+                          <div ref={transcriptionContainerRef} className="space-y-4 overflow-y-auto flex-1 pr-2">
+                             <AnimatePresence>
+                                {transcriptions.map((t, index) => (
+                                    <motion.div
+                                        key={index}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0 }}
+                                        layout
+                                        className={`flex flex-col gap-2 transition-opacity duration-300 ${!t.isTurnComplete ? 'opacity-70' : 'opacity-100'}`}
+                                    >
+                                        {t.user && (
+                                            <div className="flex items-end gap-2 self-start max-w-md">
+                                                <div className="bg-gray-200 p-2 rounded-full"><User className="w-4 h-4 text-gray-600"/></div>
+                                                <div className="bg-gray-200 rounded-lg p-3 break-words">
+                                                    <p className="text-gray-700 italic">{t.user}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {t.assistant && (
+                                            <div className="flex items-end gap-2 self-end max-w-md">
+                                                 <div className="bg-blue-500 text-white rounded-lg p-3 order-1 break-words">
+                                                    <p>{t.assistant}</p>
+                                                </div>
+                                                <div className="bg-blue-100 p-2 rounded-full order-2"><Bot className="w-4 h-4 text-blue-600"/></div>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
                              {transcriptions.length === 0 && (
-                                <p className="text-gray-500 text-center pt-8">Your conversation with the AI tutor will appear here.</p>
+                                <div className="flex items-center justify-center h-full">
+                                   <p className="text-gray-500 text-center">Your conversation with the AI tutor will appear here.</p>
+                                </div>
                              )}
                           </div>
                         )}
