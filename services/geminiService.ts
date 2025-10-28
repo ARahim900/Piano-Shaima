@@ -38,8 +38,8 @@ const songNotesSchema = {
 export const getSongNotes = async (prompt: string, type: 'song' | 'exercise'): Promise<SongNote[] | null> => {
   try {
      const contents = type === 'song' 
-      ? `Generate the musical notes for the song: "${prompt}". The song should be simplified for a single-hand piano player. Use only notes between C3 and B5. Provide the output as an array of objects.`
-      : `Generate a piano practice exercise based on this request: "${prompt}". For example, "C Major scale" or "arpeggios in G". The exercise should be suitable for a beginner. Use only notes between C3 and B5. Provide the output as an array of objects.`;
+      ? `Generate the musical notes for the song: "${prompt}". The song should be simplified for a single-hand piano player. Use only notes between C3 and B5. Provide the output as a JSON array of objects that conforms to the provided schema.`
+      : `Generate a piano practice exercise based on this request: "${prompt}". For example, "C Major scale" or "arpeggios in G". The exercise should be suitable for a beginner. Use only notes between C3 and B5. Provide the output as a JSON array of objects that conforms to the provided schema.`;
 
     const response = await getAi().models.generateContent({
       model: 'gemini-2.5-flash',
@@ -51,44 +51,53 @@ export const getSongNotes = async (prompt: string, type: 'song' | 'exercise'): P
     });
 
     let jsonString = response.text.trim();
-    
-    // First, try to parse directly, assuming the API returned clean JSON
-    try {
-        const notes = JSON.parse(jsonString);
-        if (Array.isArray(notes) && notes.length > 0 && 'note' in notes[0]) {
-            return notes as SongNote[];
-        }
-    } catch (e) {
-        // If direct parsing fails, try to extract from markdown
-        console.warn("Direct JSON parsing failed, attempting to extract from markdown.", e);
+
+    if (!jsonString) {
+      console.error("API returned an empty response.");
+      return null;
     }
     
+    // The API is configured to return JSON, but it might be wrapped in markdown.
     const jsonMatch = jsonString.match(/```json\s*([\s\S]*?)\s*```/);
     if (jsonMatch && jsonMatch[1]) {
       jsonString = jsonMatch[1];
     }
 
-    const startIndex = jsonString.indexOf('[');
-    const endIndex = jsonString.lastIndexOf(']');
+    try {
+      const notes = JSON.parse(jsonString);
 
-    if (startIndex === -1 || endIndex === -1) {
-        console.warn("Could not find a JSON array in the API response:", jsonString);
+      // We expect an array of note objects.
+      if (!Array.isArray(notes)) {
+        console.warn("Parsed JSON is not an array:", notes);
         return null;
-    }
-
-    jsonString = jsonString.substring(startIndex, endIndex + 1);
-
-    const notes = JSON.parse(jsonString);
-
-    if (Array.isArray(notes)) {
-       if (notes.length > 0 && notes.every(n => typeof n === 'object' && n !== null && 'note' in n && 'duration' in n && 'startTime' in n)) {
-        return notes as SongNote[];
       }
+
+      // An empty array means the model couldn't generate the song, which is a failure for our app.
+      if (notes.length === 0) {
+        console.warn("API returned an empty array for the prompt:", prompt);
+        return null;
+      }
+      
+      // Validate the structure of the note objects within the array.
+      const isValidStructure = notes.every(n =>
+        typeof n === 'object' && n !== null &&
+        'note' in n && typeof n.note === 'string' &&
+        'duration' in n && typeof n.duration === 'number' &&
+        'startTime' in n && typeof n.startTime === 'number'
+      );
+
+      if (isValidStructure) {
+        return notes as SongNote[];
+      } else {
+        console.warn("Received array with invalid note objects:", notes);
+        return null;
+      }
+
+    } catch (parseError) {
+      console.error("Failed to parse JSON response from API:", parseError, "Response text:", jsonString);
+      return null;
     }
-    console.warn("Received invalid or malformed song data from API:", notes);
-    return null;
-  } catch (error)
- {
+  } catch (error) {
     console.error("Error generating or parsing song notes:", error);
     return null;
   }
