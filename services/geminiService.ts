@@ -3,12 +3,14 @@ import type { SongNote, Transcription } from '../types';
 
 let ai: GoogleGenAI | null = null;
 
-// Lazily initialize the GoogleGenAI client to prevent startup errors
-// if the API key is not available at module load time.
-const getAi = (): GoogleGenAI => {
+// Lazily initialize the GoogleGenAI client, and throw a clear error if the API key is missing.
+export const getAi = (): GoogleGenAI => {
   if (!ai) {
-    // Assume API_KEY is set in the environment
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      throw new Error("API_KEY environment variable is not set or not accessible. Please ensure it is correctly configured in your deployment environment.");
+    }
+    ai = new GoogleGenAI({ apiKey });
   }
   return ai;
 };
@@ -57,8 +59,6 @@ export const getSongNotes = async (prompt: string, type: 'song' | 'exercise'): P
       return null;
     }
 
-    // The API is instructed to return JSON, but it can be "chatty" and wrap it in text.
-    // We'll find the first '[' and last ']' to reliably extract the JSON array.
     const startIndex = responseText.indexOf('[');
     const endIndex = responseText.lastIndexOf(']');
 
@@ -72,19 +72,16 @@ export const getSongNotes = async (prompt: string, type: 'song' | 'exercise'): P
     try {
       const notes = JSON.parse(jsonString);
 
-      // We expect an array of note objects.
       if (!Array.isArray(notes)) {
         console.warn("Parsed JSON is not an array:", notes);
         return null;
       }
 
-      // An empty array means the model couldn't generate the song, which is a failure for our app.
       if (notes.length === 0) {
         console.warn("API returned an empty array for the prompt:", prompt);
         return null;
       }
       
-      // Validate the structure of the note objects within the array.
       const isValidStructure = notes.every(n =>
         typeof n === 'object' && n !== null &&
         'note' in n && typeof n.note === 'string' &&
@@ -104,6 +101,10 @@ export const getSongNotes = async (prompt: string, type: 'song' | 'exercise'): P
       return null;
     }
   } catch (error) {
+    // Re-throw config errors to be handled by the UI, otherwise treat as a generation failure.
+    if (error instanceof Error && error.message.includes('API_KEY')) {
+        throw error;
+    }
     console.error("Error generating or parsing song notes:", error);
     return null;
   }
@@ -125,6 +126,10 @@ export const getPracticeSummary = async (transcriptions: Transcription[]): Promi
 
     return response.text.trim();
   } catch (error) {
+    // Re-throw config errors, otherwise return a generic error message.
+    if (error instanceof Error && error.message.includes('API_KEY')) {
+        throw error;
+    }
     console.error("Error generating practice summary:", error);
     return "Sorry, I couldn't generate a summary for this session.";
   }

@@ -389,22 +389,34 @@ const App: React.FC = () => {
     setPracticeSummary(null);
     setCompletionMessage(null);
 
-    const notes = await getSongNotes(promptText, type);
-    if (notes) {
-      setSong(notes);
-      setAppState('LOADED');
-    } else {
-      setErrorMessage(`Could not generate the ${type}. Please try a different prompt.`);
-      setAppState('ERROR');
+    try {
+      const notes = await getSongNotes(promptText, type);
+      if (notes) {
+        setSong(notes);
+        setAppState('LOADED');
+      } else {
+        setErrorMessage(`Could not generate the ${type}. Please try a different prompt.`);
+        setAppState('ERROR');
+      }
+    } catch (error) {
+        console.error("Configuration error during generation:", error);
+        setErrorMessage("Configuration Error: The AI service is not set up correctly. Please ensure the API key is provided in the environment settings.");
+        setAppState('ERROR');
     }
+
     setActiveGenerator(null);
   };
 
   const handleGetSummary = async () => {
     setIsSummaryLoading(true);
     setPracticeSummary(null);
-    const summary = await getPracticeSummary(transcriptions);
-    setPracticeSummary(summary);
+    try {
+      const summary = await getPracticeSummary(transcriptions);
+      setPracticeSummary(summary);
+    } catch (error) {
+      console.error("Configuration error during summary generation:", error);
+      setPracticeSummary("Could not generate summary due to a configuration error.");
+    }
     setIsSummaryLoading(false);
   };
   

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
+import { getAi } from '../services/geminiService';
 import type { Transcription } from '../types';
 
 // FIX: The `LiveSession` type is not exported from the library.
@@ -127,9 +128,17 @@ export const useLiveFeedback = () => {
 
     try {
       mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      console.error('Failed to acquire microphone permissions:', err);
+      setError('Could not access the microphone. Please grant permission and try again.');
+      setIsListening(false);
+      return;
+    }
+
+    try {
       setIsListening(true);
       
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      const ai = getAi();
       
       const inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       inputAudioContextRef.current = inputAudioContext;
@@ -242,9 +251,14 @@ export const useLiveFeedback = () => {
         },
       });
     } catch (err) {
-      console.error('Failed to start listening:', err);
-      setError('Could not access the microphone. Please grant permission and try again.');
+      console.error('Failed to start listening session:', err);
+      if (err instanceof Error && err.message.includes('API_KEY')) {
+        setError('Configuration Error: Live feedback is not configured correctly.');
+      } else {
+        setError('An unexpected error occurred while starting the feedback session.');
+      }
       setIsListening(false);
+      mediaStreamRef.current?.getTracks().forEach(track => track.stop());
     }
   }, [isListening, stopListening]);
 
