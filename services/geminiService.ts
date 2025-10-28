@@ -6,7 +6,13 @@ let ai: GoogleGenAI | null = null;
 // Lazily initialize the GoogleGenAI client, and throw a clear error if the API key is missing.
 export const getAi = (): GoogleGenAI => {
   if (!ai) {
-    const apiKey = process.env.API_KEY;
+    // In many build environments (like Vite, Next.js, or the AI Studio platform),
+    // process.env.API_KEY is replaced at build time.
+    // In a custom deployment like Netlify without a specific build setup,
+    // this may not be available. We add a fallback to a window global
+    // as a potential workaround for such environments.
+    const apiKey = process.env.API_KEY || (window as any).API_KEY;
+
     if (!apiKey) {
       throw new Error("API_KEY environment variable is not set or not accessible. Please ensure it is correctly configured in your deployment environment.");
     }
