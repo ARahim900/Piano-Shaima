@@ -50,18 +50,24 @@ export const getSongNotes = async (prompt: string, type: 'song' | 'exercise'): P
       },
     });
 
-    let jsonString = response.text.trim();
+    const responseText = response.text.trim();
 
-    if (!jsonString) {
+    if (!responseText) {
       console.error("API returned an empty response.");
       return null;
     }
-    
-    // The API is configured to return JSON, but it might be wrapped in markdown.
-    const jsonMatch = jsonString.match(/```json\s*([\s\S]*?)\s*```/);
-    if (jsonMatch && jsonMatch[1]) {
-      jsonString = jsonMatch[1];
+
+    // The API is instructed to return JSON, but it can be "chatty" and wrap it in text.
+    // We'll find the first '[' and last ']' to reliably extract the JSON array.
+    const startIndex = responseText.indexOf('[');
+    const endIndex = responseText.lastIndexOf(']');
+
+    if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+        console.error("Could not find a valid JSON array in the response.", responseText);
+        return null;
     }
+    
+    const jsonString = responseText.substring(startIndex, endIndex + 1);
 
     try {
       const notes = JSON.parse(jsonString);
@@ -94,7 +100,7 @@ export const getSongNotes = async (prompt: string, type: 'song' | 'exercise'): P
       }
 
     } catch (parseError) {
-      console.error("Failed to parse JSON response from API:", parseError, "Response text:", jsonString);
+      console.error("Failed to parse extracted JSON string from API:", parseError, "Extracted string:", jsonString);
       return null;
     }
   } catch (error) {
