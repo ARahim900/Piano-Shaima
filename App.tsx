@@ -9,6 +9,7 @@ import { GlowingEffect } from './components/ui/glowing-effect';
 import { cn } from './lib/utils';
 import { Music, Keyboard } from 'lucide-react';
 import { GradualSpacing } from './components/ui/gradual-spacing';
+import { Alert } from './components/ui/Alert';
 
 // Note frequencies from C3 to B5
 const noteFrequencies: { [key: string]: number } = {
@@ -108,7 +109,7 @@ const App: React.FC = () => {
   const [exercisePrompt, setExercisePrompt] = useState<string>('C Major scale, two octaves');
   const [highlightedNoteInfo, setHighlightedNoteInfo] = useState<{ note: string | null; startTime: number | null }>({ note: null, startTime: null });
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorInfo, setErrorInfo] = useState<{ title: string; message: string } | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   
   const [learningNoteIndex, setLearningNoteIndex] = useState<number>(0);
@@ -169,7 +170,7 @@ const App: React.FC = () => {
         const context = new (window.AudioContext || (window as any).webkitAudioContext)();
         audioContextRef.current = context;
       } catch (e) {
-        setErrorMessage("Web Audio API is not supported in this browser.");
+        setErrorInfo({ title: "Audio Error", message: "Web Audio API is not supported in this browser." });
         console.error("Could not create AudioContext", e);
         return false;
       }
@@ -384,7 +385,7 @@ const App: React.FC = () => {
     setAppState('LOADING');
     setActiveGenerator(type);
     setSong(null);
-    setErrorMessage(null);
+    setErrorInfo(null);
     resetPlayback();
     setPracticeSummary(null);
     setCompletionMessage(null);
@@ -395,12 +396,12 @@ const App: React.FC = () => {
         setSong(notes);
         setAppState('LOADED');
       } else {
-        setErrorMessage(`Could not generate the ${type}. Please try a different prompt.`);
+        setErrorInfo({ title: "Generation Failed", message: `Could not generate the ${type}. Please try a different prompt.`});
         setAppState('ERROR');
       }
     } catch (error) {
         console.error("Configuration error during generation:", error);
-        setErrorMessage("Configuration Error: The AI service is not set up correctly. Please ensure the API key is provided in the environment settings.");
+        setErrorInfo({ title: "Configuration Error", message: "The AI service is not set up correctly. Please ensure the API key is provided in the environment settings."});
         setAppState('ERROR');
     }
 
@@ -492,8 +493,14 @@ const App: React.FC = () => {
                   />
             </div>
           </div>
-          {errorMessage && <p className="text-red-500 mt-4 text-center">{errorMessage}</p>}
           
+          {errorInfo && (
+            <Alert
+                title={errorInfo.title}
+                message={errorInfo.message}
+                onDismiss={() => setErrorInfo(null)}
+            />
+          )}
 
           {song && (
             <div className="space-y-8 animate-fade-in-up">
