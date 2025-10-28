@@ -253,7 +253,7 @@ export const useLiveFeedback = () => {
     } catch (err) {
       console.error('Failed to start listening session:', err);
       let errorMessage = 'An unexpected error occurred while starting the feedback session.';
-      if (err instanceof Error && /api key/i.test(err.message)) {
+      if (err instanceof Error && /api key|authentication|permission|not found/i.test(err.message)) {
           errorMessage = 'Configuration Error: Live feedback is not configured correctly.';
            // Provide more specific advice for users on deployed platforms.
           if (window.location.hostname !== 'localhost' && window.location.hostname !== '') {

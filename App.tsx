@@ -422,14 +422,12 @@ const App: React.FC = () => {
       setPracticeSummary(summary);
     } catch (error) {
       console.error("Configuration error during summary generation:", error);
-      let message = "Could not generate the practice summary due to an unexpected error.";
-      if (error instanceof Error && /api key/i.test(error.message)) {
-        message = "The AI service is not set up correctly. Please check your API key configuration.";
-        if (window.location.hostname !== 'localhost' && window.location.hostname !== '') {
-            message += " Ensure the API_KEY is set as an environment variable in your hosting provider's settings.";
-        }
+      let message = "The AI service is not set up correctly. Please ensure the API key is provided in the environment settings.";
+      // Provide more specific advice for users on deployed platforms.
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '') {
+          message += " If you are deploying this to a service like Netlify or Vercel, you must set the API_KEY as an environment variable in your project's settings on that platform for it to work correctly.";
       }
-      setErrorInfo({ title: "Summary Failed", message });
+      setErrorInfo({ title: "Configuration Error", message });
     }
     setIsSummaryLoading(false);
   };

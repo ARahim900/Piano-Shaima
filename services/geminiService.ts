@@ -100,8 +100,8 @@ export const getSongNotes = async (prompt: string, type: 'song' | 'exercise'): P
       return null;
     }
   } catch (error) {
-    // Re-throw config errors to be handled by the UI, otherwise treat as a generation failure.
-    if (error instanceof Error && /api key/i.test(error.message)) {
+    // Re-throw config/auth errors to be handled by the UI, otherwise treat as a generation failure.
+    if (error instanceof Error && /api key|authentication|permission|not found/i.test(error.message)) {
         throw error;
     }
     console.error("Error generating or parsing song notes:", error);
@@ -125,8 +125,8 @@ export const getPracticeSummary = async (transcriptions: Transcription[]): Promi
 
     return response.text.trim();
   } catch (error) {
-    // Re-throw config errors, otherwise return a generic error message.
-    if (error instanceof Error && /api key/i.test(error.message)) {
+    // Re-throw config/auth errors, otherwise return a generic error message.
+    if (error instanceof Error && /api key|authentication|permission|not found/i.test(error.message)) {
         throw error;
     }
     console.error("Error generating practice summary:", error);
