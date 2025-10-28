@@ -414,7 +414,7 @@ const App: React.FC = () => {
         let message = "The AI service is not set up correctly. Please ensure the API key is provided in the environment settings.";
         // Provide more specific advice for users on deployed platforms.
         if (window.location.hostname !== 'localhost' && window.location.hostname !== '') {
-            message += " If you are deploying this to a service like Netlify or Vercel, you must set the API_KEY as an environment variable in your project's settings on that platform for it to work correctly.";
+            message += " If you are deploying this to a service like Netlify or Vercel, you must set the VITE_GEMINI_API_KEY as an environment variable in your project's settings on that platform for it to work correctly.";
         }
         setErrorInfo({ title: "Configuration Error", message });
         setAppState('ERROR');
@@ -435,7 +435,7 @@ const App: React.FC = () => {
       let message = "The AI service is not set up correctly. Please ensure the API key is provided in the environment settings.";
       // Provide more specific advice for users on deployed platforms.
       if (window.location.hostname !== 'localhost' && window.location.hostname !== '') {
-          message += " If you are deploying this to a service like Netlify or Vercel, you must set the API_KEY as an environment variable in your project's settings on that platform for it to work correctly.";
+          message += " If you are deploying this to a service like Netlify or Vercel, you must set the VITE_GEMINI_API_KEY as an environment variable in your project's settings on that platform for it to work correctly.";
       }
       setErrorInfo({ title: "Configuration Error", message });
     }

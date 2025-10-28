@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { SongNote, Transcription } from '../types';
 
@@ -6,10 +7,10 @@ let ai: GoogleGenAI | null = null;
 // Lazily initialize the GoogleGenAI client.
 export const getAi = (): GoogleGenAI => {
   if (!ai) {
-    // Per Gemini API guidelines, the API key must be sourced exclusively from process.env.API_KEY.
+    // To work with frontend build tools like Vite, environment variables must be prefixed.
+    // We are using VITE_GEMINI_API_KEY as suggested for deployment environments like Netlify.
     // The @google/genai SDK will throw an error if the key is missing or invalid.
-    // This assumes the environment is correctly configured to provide this variable.
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    ai = new GoogleGenAI({ apiKey: process.env.VITE_GEMINI_API_KEY });
   }
   return ai;
 };

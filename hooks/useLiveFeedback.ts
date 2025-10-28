@@ -1,3 +1,4 @@
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 import { getAi } from '../services/geminiService';
@@ -257,7 +258,7 @@ export const useLiveFeedback = () => {
           errorMessage = 'Configuration Error: Live feedback is not configured correctly.';
            // Provide more specific advice for users on deployed platforms.
           if (window.location.hostname !== 'localhost' && window.location.hostname !== '') {
-              errorMessage += " If you are deploying this app, ensure the API_KEY is set as an environment variable in your hosting provider's settings."
+              errorMessage += " If you are deploying this app, ensure the VITE_GEMINI_API_KEY is set as an environment variable in your hosting provider's settings."
           }
       }
       setError(errorMessage);
