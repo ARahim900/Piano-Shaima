@@ -1,8 +1,17 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { SongNote, Transcription } from '../types';
 
-// Assume API_KEY is set in the environment
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+let ai: GoogleGenAI | null = null;
+
+// Lazily initialize the GoogleGenAI client to prevent startup errors
+// if the API key is not available at module load time.
+const getAi = (): GoogleGenAI => {
+  if (!ai) {
+    // Assume API_KEY is set in the environment
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  }
+  return ai;
+};
 
 const songNotesSchema = {
   type: Type.ARRAY,
@@ -32,7 +41,7 @@ export const getSongNotes = async (prompt: string, type: 'song' | 'exercise'): P
       ? `Generate the musical notes for the song: "${prompt}". The song should be simplified for a single-hand piano player. Use only notes between C3 and B5. Provide the output as an array of objects.`
       : `Generate a piano practice exercise based on this request: "${prompt}". For example, "C Major scale" or "arpeggios in G". The exercise should be suitable for a beginner. Use only notes between C3 and B5. Provide the output as an array of objects.`;
 
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: 'gemini-2.5-flash',
       contents: contents,
       config: {
@@ -94,7 +103,7 @@ export const getPracticeSummary = async (transcriptions: Transcription[]): Promi
       .map(t => `Student played (transcribed as): "${t.user || '[music]'}"\nTutor said: "${t.assistant}"`)
       .join('\n---\n');
       
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
         model: 'gemini-2.5-flash',
         contents: `You are an expert piano teacher reviewing a practice session. Based on the following transcription of a student's playing and a tutor's real-time feedback, provide a concise, encouraging summary. The student's part is their piano playing, which is often transcribed as "non-speech" or musical sounds. Focus primarily on the tutor's feedback to understand the student's progress.\n\nYour summary should:\n1. Start with an encouraging opening statement.\n2. Briefly mention what the student did well (based on the tutor's praise).\n3. Gently point out one or two key areas for improvement (based on the tutor's corrections).\n4. Conclude with a positive and motivating closing remark for their next practice.\n\nHere is the session transcription:\n---\n${transcriptionText}\n---`,
     });

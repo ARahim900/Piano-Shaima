@@ -1,6 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob } from '@google/genai';
+import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 import type { Transcription } from '../types';
+
+// FIX: The `LiveSession` type is not exported from the library.
+// We infer the type of the session promise to maintain type safety.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let _aiForTypeInference: GoogleGenAI;
+type LiveSessionPromise = ReturnType<typeof _aiForTypeInference.live.connect>;
 
 // Helper functions for audio encoding/decoding as per Gemini documentation
 function encode(bytes: Uint8Array): string {
@@ -59,7 +65,7 @@ export const useLiveFeedback = () => {
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const sessionPromiseRef = useRef<Promise<LiveSession> | null>(null);
+  const sessionPromiseRef = useRef<LiveSessionPromise | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const inputAudioContextRef = useRef<AudioContext | null>(null);
   const outputAudioContextRef = useRef<AudioContext | null>(null);
