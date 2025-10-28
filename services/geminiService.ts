@@ -3,20 +3,13 @@ import type { SongNote, Transcription } from '../types';
 
 let ai: GoogleGenAI | null = null;
 
-// Lazily initialize the GoogleGenAI client, and throw a clear error if the API key is missing.
+// Lazily initialize the GoogleGenAI client.
 export const getAi = (): GoogleGenAI => {
   if (!ai) {
-    // In many build environments (like Vite, Next.js, or the AI Studio platform),
-    // process.env.API_KEY is replaced at build time.
-    // In a custom deployment like Netlify without a specific build setup,
-    // this may not be available. We add a fallback to a window global
-    // as a potential workaround for such environments.
-    const apiKey = process.env.API_KEY || (window as any).API_KEY;
-
-    if (!apiKey) {
-      throw new Error("API_KEY environment variable is not set or not accessible. Please ensure it is correctly configured in your deployment environment.");
-    }
-    ai = new GoogleGenAI({ apiKey });
+    // Per Gemini API guidelines, the API key must be sourced exclusively from process.env.API_KEY.
+    // The @google/genai SDK will throw an error if the key is missing or invalid.
+    // This assumes the environment is correctly configured to provide this variable.
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
   return ai;
 };
@@ -108,7 +101,7 @@ export const getSongNotes = async (prompt: string, type: 'song' | 'exercise'): P
     }
   } catch (error) {
     // Re-throw config errors to be handled by the UI, otherwise treat as a generation failure.
-    if (error instanceof Error && error.message.includes('API_KEY')) {
+    if (error instanceof Error && /api key/i.test(error.message)) {
         throw error;
     }
     console.error("Error generating or parsing song notes:", error);
@@ -133,7 +126,7 @@ export const getPracticeSummary = async (transcriptions: Transcription[]): Promi
     return response.text.trim();
   } catch (error) {
     // Re-throw config errors, otherwise return a generic error message.
-    if (error instanceof Error && error.message.includes('API_KEY')) {
+    if (error instanceof Error && /api key/i.test(error.message)) {
         throw error;
     }
     console.error("Error generating practice summary:", error);

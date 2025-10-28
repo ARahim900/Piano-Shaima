@@ -252,11 +252,15 @@ export const useLiveFeedback = () => {
       });
     } catch (err) {
       console.error('Failed to start listening session:', err);
-      if (err instanceof Error && err.message.includes('API_KEY')) {
-        setError('Configuration Error: Live feedback is not configured correctly.');
-      } else {
-        setError('An unexpected error occurred while starting the feedback session.');
+      let errorMessage = 'An unexpected error occurred while starting the feedback session.';
+      if (err instanceof Error && /api key/i.test(err.message)) {
+          errorMessage = 'Configuration Error: Live feedback is not configured correctly.';
+           // Provide more specific advice for users on deployed platforms.
+          if (window.location.hostname !== 'localhost' && window.location.hostname !== '') {
+              errorMessage += " If you are deploying this app, ensure the API_KEY is set as an environment variable in your hosting provider's settings."
+          }
       }
+      setError(errorMessage);
       setIsListening(false);
       mediaStreamRef.current?.getTracks().forEach(track => track.stop());
     }
